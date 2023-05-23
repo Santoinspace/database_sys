@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <!-- <link rel="logo" href="r.jpg"> -->
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>front page</title>
+        <link rel="stylesheet" href="CSS/load.css">
+    </head>
+    <body>
+        <div class="login">
+            <h1>LOG IN</h1>
+            <form action="PHP/datafinal.php" method="post" onsubmit="return checkuser()">
+                <input type="text" id="uname" value="" placeholder="Username" autocomplete="off" required/><br>
+                <input type="password" id="pwd" value="" placeholder="Password" autocomplete="off"  required/><br>
+                <input type="submit" id="button" value="Load" onclick="flush()"/><br>
+            </form>
+        </div>
+    </body>
+
+<script type="text/javascript">
+    function getValue(id){
+        return document.getElementById(id).value;
+
+    }
+
+    function checkuser(){
+        if(getValue('uname')=="os" && getValue('pwd')=="122"){
+            return true;
+        }
+        else{
+            alert("failed")
+            return false;
+        }
+    }
+</script>
+</html>
