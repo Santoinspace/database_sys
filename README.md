@@ -27,3 +27,7 @@ following this [内网穿透](https://blog.csdn.net/qq_19309473/article/details/
 这里修改了部分php代码，以解决上面出现的问题  
 
 ![演示视频一](demo3.gif)
+  
+
+---
+**后续内容即数据库搭建和完善在"数据库大作业.doxc"中均有提及，在此不再赘述。**

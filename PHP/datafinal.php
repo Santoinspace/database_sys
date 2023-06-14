@@ -12,7 +12,23 @@
                 align-items: center;
             }
         </style>
-
+        <script>
+            function showInputField() {
+                document.getElementById("inputField").style.display = "block";
+            }
+            
+            function hideInputField() {
+                document.getElementById("inputField").style.display = "none";
+            }
+            
+            function submitInput() {
+                var customerId = document.getElementById("customerId").value;
+                // 在这里执行你的逻辑，例如调用后端API或提交表单等
+                
+                // 提交后隐藏输入框
+                hideInputField();
+            }
+        </script>
     </head>
     <body>
 
@@ -20,7 +36,7 @@
         <div id="table">
             <h3 id='head'>请输入sql语句：</h3>
             <input type="text" name="sql" id='sql' value="" />
-            <input type="submit" name="submit" id='submit' value="执行sql指令" onclick="flush()">
+            <input type="submit" name="submit" id='submit' value="查询" onclick="flush()">
         </div>
         </form>
         <div class="form-container"> 
@@ -39,18 +55,56 @@
                     <input type="submit" name="clear_screen" value="清除屏幕">
                 </div>
             </form>
+            <form>
+                <button type="button" onclick="showInputField()">点击输入Customer ID来查看所有支出</button>
+            </form> 
         </div>
-
+        <div id="inputField" style="display: none;">
+            <form action='' method='POST'>
+                <input type="text" name="customerId" id="customerId" placeholder="请输入Customer ID">
+                <input type="submit" onclick="hideInputField()" value="提交">
+                <button type="button" onclick="hideInputField()">取消</button>
+            </form>
+            
+        </div>
         <?php 
             #echo "<script type='text/javascript'>fflush();</script>";
             #连接xmapp自带的数据库
 
-            # 用于清空目前屏幕信息的函数
+
             function clearOutputBuffer(){
                 echo " ";
             }
 
-            # 用于展示一个sql指令执行后的表的所有信息
+            #function insert_trigger(){
+            #    $link = mysqli_connect('localhost','root','','bank_dbs',3306) or die("connection failed");
+            #    mysqli_set_charset($link,'utf8');
+            #    $trigger = 
+            #        "CREATE TRIGGER update_account_balance
+            #        AFTER INSERT OR UPDATE 
+            #        ON withdraw 
+            #        FOR EACH ROW
+            #        BEGIN
+            #            -- 更新account表中相应行的balance数据
+            #            UPDATE account
+            #            SET balance = balance - NEW.amount
+            #            WHERE account.acc_ID IN 
+            #            (SELECT 
+            #             FROM WITH
+            #            );
+            #       END;";
+            #    try{
+            #        $link->query($trigger);
+            #        echo "植入trigger成功";
+            #    }
+            #    catch(Exception $e){
+            #        echo '<script>alert("植入触发器update_account_balance错误")</script>';
+            #    }
+
+                // 关闭数据库连接
+            #    mysqli_close($link);
+            #}
+
             function show($result){
                 if ($result->num_rows > 0) {
                     echo "<table>";
@@ -77,7 +131,6 @@
                 }
             }
 
-            # 从一个sql指令中提取表名的正则表达式集合
             function extractTableNameFromQuery($query) {
                 $pattern = '/FROM\s+(\w+)/i';
                 preg_match($pattern, $query, $matches);
@@ -105,8 +158,7 @@
             
                 return null;
             }
-            
-            # 获取一个数据库中所有表名字的函数
+
             function getAllTableNames($link, $databaseName) {
                 $tableNames = array();
                 $result = mysqli_query($link, "SHOW TABLES FROM $databaseName");
@@ -116,7 +168,6 @@
                 return $tableNames;
             }
             
-            # 获取一个表中所有列名字的函数
             function getTableColumnNames($link, $tableName) {
                 $columnNames = array();
                 $result = mysqli_query($link, "SHOW COLUMNS FROM $tableName");
@@ -125,20 +176,51 @@
                 }
                 return $columnNames;
             }
+         
+            # insert_trigger();
 
-            echo "<br>";
-            # 若清除屏幕的按钮被点击
+            if(isset($_POST['customerId'])){
+                $customerId = $_POST["customerId"];
+                echo "查询的customer的id是：$customerId";
+                $link = mysqli_connect('localhost','root','','bank_dbs',3306) or die("connection failed");
+                mysqli_set_charset($link,'utf8');
+
+                $procedure = "CREATE OR REPLACE PROCEDURE GetWithdrawDataByCustomerId(IN customer_id INT)
+                BEGIN
+                    SELECT withdraw.ID,withdraw.amount
+                    FROM customer
+                    JOIN take ON customer.cus_id = take.cus_id
+                    JOIN withdraw ON withdraw.ID = take.withdraw_id
+                    WHERE customer.cus_id = customer_id;
+                END;";
+
+                try{
+                    $link->query($procedure);
+                }
+                catch(Exception $e){
+                    echo '<script>alert("植入程序错误")</script>';
+                }
+                try{
+                    $result = $link->query("CALL GetWithdrawDataByCustomerId($customerId);");
+                    show($result);
+                }
+                catch(Exception $e){
+                    echo '<script>alert("使用GetWithdrawDataByCustomerId错误")</script>';
+                }
+                // 关闭数据库连接
+                mysqli_close($link);
+            }
+
             if(isset($_POST['clear_screen'])){
                 clearOutputBuffer();
             }
-            # 若展示所有表内容的按钮被点击
             if(isset($_POST['show_all_tables'])){
                 $link = mysqli_connect('localhost','root','','bank_dbs',3306) or die("connection failed");
                 mysqli_set_charset($link,'utf8');
                 echo "<br><br>";
                 $tableNames = getAllTableNames($link, 'bank_dbs');
-                echo "以下是所有的表，以及表中的数据";
                 // 遍历每个表并获取列名列表
+                echo "以下是所有的表，以及表中的数据";
                 foreach ($tableNames as $tableName) {
                     echo "<br>";
                     echo "表名是：" . $tableName;
@@ -155,7 +237,7 @@
                 // 关闭数据库连接
                 mysqli_close($link);
             }
-            # 若展示所有表的所有列的名字的按钮被点击
+
             if (isset($_POST['show_all_columns'])) {
                 // 连接数据库
                 $link = mysqli_connect('localhost','root','','bank_dbs',3306);
@@ -178,7 +260,7 @@
                 // 关闭数据库连接
                 mysqli_close($link);
             }
-            # 若用户输入sql语句并点击执行指令的按钮
+
             if(isset($_POST["sql"])){
                 $query = $_POST["sql"];
                 if($query==null){
@@ -219,7 +301,28 @@
                     else {
                         echo '<script>alert("未找到表名")</script>';
                     }
+
+
+                    # 测试用：在经历了sql指令之后，输出特定表table1中所有的内容以直观观察结果
+                    #if($result != false){
+                    #    echo "<br>以下为所有sql查询结果：";
+                    #   echo "<br>";
+                    #    $result2 = mysqli_query($link,"select *from table1");
+                    #    while($row = mysqli_fetch_row($result2))
+                    #    {
+                    #        print_r($row);
+                    #    #    echo "<br>";
+                    #        #$message[] = $row;
+                    #    }
+                    #}
+                    #$query = null;
                 }
+                #$message = array($sql);
+                #while($row = mysqli_fetch_row($sql))
+                #{
+                #    print_r($row);
+                #    echo "<br>";
+                #}
                 // 关闭数据库连接
                 mysqli_close($link);
             }
